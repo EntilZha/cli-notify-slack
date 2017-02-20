@@ -7,7 +7,6 @@ import time
 import datetime
 from slacker import Slacker
 
-
 SLACK_API_TOKEN = os.environ.get('SLACK_API_TOKEN')
 SLACK_CHANNEL = os.getenv('SLACK_CHANNEL', '#experiments-status')
 
@@ -26,7 +25,10 @@ def notify(message, attachments, slack_api_token=None, slack_channel=None):
         slack_channel = SLACK_CHANNEL
 
     slack = Slacker(slack_api_token)
-    slack.chat.post_message(slack_channel, message, attachments=attachments, username='Experiment Bot')
+    slack.chat.post_message(
+        slack_channel, message,
+        attachments=attachments, username='Experiment Bot'
+    )
 
 
 def create_attachment(title, message, color):
@@ -40,8 +42,16 @@ def create_attachment(title, message, color):
 
 
 def shell(shell_command):
-    process = subprocess.run(shell_command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    return process.stdout.decode('utf8'), process.stderr.decode('utf8'), process.returncode
+    process = subprocess.Popen(shell_command, shell=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE)
+    while True:
+        nextline = process.stdout.readline()
+        if nextline == b'' and process.poll() is not None:
+            break
+        sys.stdout.write(nextline.decode('utf8'))
+        sys.stdout.flush()
+    stdout, stderr = process.communicate()
+    return stdout.decode('utf8'), stderr.decode('utf8'), process.returncode
 
 
 def cli():
@@ -53,13 +63,14 @@ def cli():
     total_time = time.time() - start_time
     delta = str(datetime.timedelta(seconds=total_time))
     attachments = []
-    input_command = 'User: `{user}`\tHostname: `{hostname}`\t Running TIme: {time}\nDirectory: `{pwd}`\n Command: `{command}`'.format(
-        user=user,
-        hostname=hostname,
-        pwd=os.getcwd(),
-        command=command,
-        time=delta
-    )
+    input_command = 'User: `{user}`\tHostname: `{hostname}`\t Running Time: `{time}`\nDirectory: ' \
+                    '`{pwd}`\n Command: `{command}`'.format(
+                                                    user=user,
+                                                    hostname=hostname,
+                                                    pwd=os.getcwd(),
+                                                    command=command,
+                                                    time=delta
+                                                )
     attachments.append(create_attachment('Command', input_command, 'light-blue'))
     if stdout != '':
         attachments.append(create_attachment('Standard Out', '```\n' + stdout + '```', 'green'))
