@@ -13,7 +13,8 @@ SLACK_CHANNEL = os.getenv('SLACK_CHANNEL', '#experiments-status')
 COLORS = {
     'green': '#36a64f',
     'light-blue': '#5bc0de',
-    'red': '#c9302c'
+    'red': '#c9302c',
+    'yellow': '#f0ad4e'
 }
 
 
@@ -44,14 +45,17 @@ def create_attachment(title, message, color):
 def shell(shell_command):
     process = subprocess.Popen(shell_command, shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
+    stdout = ''
     while True:
         nextline = process.stdout.readline()
         if nextline == b'' and process.poll() is not None:
             break
-        sys.stdout.write(nextline.decode('utf8'))
+        line = nextline.decode('utf8')
+        stdout += line
+        sys.stdout.write(line)
         sys.stdout.flush()
-    stdout, stderr = process.communicate()
-    return stdout.decode('utf8'), stderr.decode('utf8'), process.returncode
+    stderr = process.communicate()[1]
+    return stdout, stderr.decode('utf8'), process.returncode
 
 
 def cli():
@@ -81,4 +85,8 @@ def cli():
             attachments.append(create_attachment('Standard Error', '```\n' + stderr + '```', 'red'))
         else:
             attachments.append(create_attachment('Standard Error', 'No Output', 'red'))
+    else:
+        if stderr != '':
+            attachments.append(create_attachment(
+                'Standard Error (0 Status Code)', '```\n' + stderr + '```', 'yellow'))
     notify('Command Completed', attachments)
