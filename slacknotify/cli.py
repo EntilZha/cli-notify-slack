@@ -46,16 +46,20 @@ def shell(shell_command):
     process = subprocess.Popen(shell_command, shell=True, stdout=subprocess.PIPE,
                                stderr=subprocess.PIPE)
     stdout = ''
+    stderr = ''
     while True:
-        nextline = process.stdout.readline()
-        if nextline == b'' and process.poll() is not None:
+        stdout_nextline = process.stdout.readline()
+        stderr_nextline = process.stderr.readline()
+        if stdout_nextline == b'' and stderr_nextline == b'' and process.poll() is not None:
             break
-        line = nextline.decode('utf8')
-        stdout += line
-        sys.stdout.write(line)
+        stdout_line = stdout_nextline.decode('utf8')
+        stderr_line = stderr_nextline.decode('utf8')
+        stdout += stdout_line
+        stderr += stderr_line
+        sys.stdout.write(stdout_line)
         sys.stdout.flush()
-    stderr = process.communicate()[1]
-    return stdout, stderr.decode('utf8'), process.returncode
+        sys.stderr.write(stderr_line)
+    return stdout, stderr, process.returncode
 
 
 def cli():
