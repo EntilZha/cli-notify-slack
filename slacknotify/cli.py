@@ -59,6 +59,7 @@ def shell(shell_command):
         sys.stdout.write(stdout_line)
         sys.stdout.flush()
         sys.stderr.write(stderr_line)
+        sys.stderr.flush()
     return stdout, stderr, process.returncode
 
 
